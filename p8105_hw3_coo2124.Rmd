@@ -21,7 +21,7 @@ data("ny_noaa")
 
 #write a short description
 
-The dataset contains information on Citi Bike rides, focusing on two years: 2020 and 2024. It has a total of 12,345 rows and 7 columns (replace with actual numbers if needed). Each row represents an individual ride, and key variables include `ride_id`, `rideable_type` (indicating whether the bike was classic or electric), `member_casual` (whether the rider is a casual user or a member), and `duration` (ride length in minutes). Additionally, the dataset records details like `start_station_name`, `end_station_name`, `weekdays`, and `month`. 
+The dataset contains information on Citi Bike rides, focusing on two years: 2020 and 2024. It has a total of 2595176 rows and 7 columns (replace with actual numbers if needed). Each row represents an individual ride, and key variables include `ride_id`, `rideable_type` (indicating whether the bike was classic or electric), `member_casual` (whether the rider is a casual user or a member), and `duration` (ride length in minutes). Additionally, the dataset records details like `start_station_name`, `end_station_name`, `weekdays`, and `month`. 
 
 The structure is typical of a ride-sharing dataset, with primarily categorical and numeric variables. Some missing data are present in station names, which may affect the analysis of popular routes or stations. However, variables such as `rideable_type`, `member_casual`, and `duration` are complete, ensuring reliable insights into bike usage patterns over time.
 
