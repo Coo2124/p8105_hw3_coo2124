@@ -250,19 +250,29 @@ Jan_2020_Citi <- read_csv("citibike/Jan 2020 Citi.csv") %>%
   ) %>%
   select(year, month, start_station_name, member_casual, everything())
 
+```
+
+```{r}
 Jan_2024_Citi <- read_csv("citibike/Jan 2024 Citi.csv") %>%
   mutate(
     year = 2024,
     month = "january"
   ) %>%
   select(year, month, start_station_name, member_casual, everything())
+```
 
+
+```{r}
 July_2020_Citi <- read_csv("citibike/July 2020 Citi.csv") %>%
   mutate(
     year = 2020,
     month = "july"
   ) %>%
   select(year, month, start_station_name, member_casual, everything())
+```
+
+
+```{r}
 
 July_2024_Citi <- read_csv("citibike/July 2024 Citi.csv") %>%
   mutate(
@@ -270,24 +280,25 @@ July_2024_Citi <- read_csv("citibike/July 2024 Citi.csv") %>%
     month = "july"
   ) %>%
   select(year, month, start_station_name, member_casual, everything())
-
-citi_bike_combined <- bind_rows(Jan_2020_Citi, Jan_2024_Citi, July_2020_Citi, July_2024_Citi)
-colnames(citi_bike_combined)
-
 ```
+#combine data
+```{r}
+citi_bike_combined <- bind_rows(Jan_2020_Citi, Jan_2024_Citi, July_2020_Citi, July_2024_Citi)
+str(citi_bike_combined)
+```
+
 
 #Produce a reader-friendly table showing the total number of rides in each combination of year and month separating casual riders and Citi Bike members.
 ```{r}
 citi_bike_combined <- citi_bike_combined %>%
   group_by(year, month, member_casual) %>%
-  summarise(total_rides = n(), .groups = 'drop') %>%  
+  summarise(total_rides = n()) %>%  
   arrange(year, month, member_casual)
 
 rides_summary_table <- citi_bike_combined %>%
   knitr::kable()
 
 print(rides_summary_table)
-
 ```
 
 #comment
@@ -295,11 +306,43 @@ The results indicate clear patterns in Citi Bike usage across different years, m
 
 
 
+```{r}
+list(
+  Jan_2020 = colnames(Jan_2020_Citi),
+  Jan_2024 = colnames(Jan_2024_Citi),
+  July_2020 = colnames(July_2020_Citi),
+  July_2024 = colnames(July_2024_Citi)
+)
+
+# Re-import datasets without dropping any columns
+Jan_2020_Citi <- read_csv("citibike/Jan 2020 Citi.csv") %>%
+  mutate(year = 2020, month = "january")
+
+Jan_2024_Citi <- read_csv("citibike/Jan 2024 Citi.csv") %>%
+  mutate(year = 2024, month = "january")
+
+July_2020_Citi <- read_csv("citibike/July 2020 Citi.csv") %>%
+  mutate(year = 2020, month = "july")
+
+July_2024_Citi <- read_csv("citibike/July 2024 Citi.csv") %>%
+  mutate(year = 2024, month = "july")
+
+# Combine datasets
+citi_bike_combined <- bind_rows(Jan_2020_Citi, Jan_2024_Citi, 
+                                July_2020_Citi, July_2024_Citi)
+colnames(citi_bike_combined)
+
+# Add missing column if necessary
+Jan_2024_Citi <- Jan_2024_Citi %>%
+  mutate(start_station_name = NA)
+```
+
+
 #Make a table showing the 5 most popular starting stations for July 2024; include the number of rides originating from these stations.
 ```{r}
 top_stations_july_2024 <- citi_bike_combined %>%
   filter(year == 2024 & month == "july") %>%
-  group_by(start_station_name) %>%
+  group_by (start_station_name) %>%
   summarise(total_rides = n()) %>%
   arrange(desc(total_rides)) %>%
   slice_max(order_by = total_rides, n = 5)
@@ -308,7 +351,6 @@ top_stations_table <- top_stations_july_2024 %>%
   knitr::kable()
 
 print(top_stations_table)
-
 ```
 
 #Make a plot to investigate the effects of day of the week, month, and year on median ride duration. This plot can include one or more panels, but should facilitate comparison across all variables of interest. Comment on your observations from this plot.
