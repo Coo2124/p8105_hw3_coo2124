@@ -1,30 +1,115 @@
 ---
 title: "p8105_hw3_coo2124"
-author: "Christiana Odewumi"
-date: "2024-10-15"
-output: html_document
+output: github_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+library(tidyverse)
+library(ggridges)
+library(ggplot2)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+devtools::install_github("p8105/p8105.datasets")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+#Problem 1
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#write a short description of the dataset
+
+
+# Data cleaning 
+```{r}
+library(dplyr)
+library(lubridate)
+
+ny_noaa_clean <- ny_noaa %>%
+  mutate(
+    year = year(date),
+    month = month(date),
+    day = day(date),
+    tmax = as.numeric(tmax) / 10,  
+    tmin = as.numeric(tmin) / 10   
+  )
+
+ny_noaa_clean %>%
+  group_by(snow) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+```
+
+#Answer 
+
+The most frequent snowfall value is 0, with 2,008,508 occurrences. This is because snowfall is seasonal and occurs only during specific periods in colder months.
+
+
+# two-panel plot showing the average max temperature in January and in July in each station across years. 
+
+```{r}
+ny_noaa_clean %>%
+  filter(month %in% c(1, 7)) %>%
+  group_by(year, month, id) %>%
+  summarize(avg_tmax = mean(tmax, na.rm = TRUE), .groups = 'drop') %>%
+  ggplot(aes(x = year, y = avg_tmax, color = id)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(. ~ month) +
+  labs(
+    title = "Average Max Temperature in January and July Across Years by Station",
+    x = "Year",
+    y = "Average Max Temperature (°C)",
+    color = "Station"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#Answer 
+The plot shows that January has significantly lower average maximum temperatures compared to July, which is expected due to seasonal differences. While July temperatures exhibit a consistent pattern across stations, January data shows more variability and several unusual spikes and dips. Specifically, between 1980 and 1990, some stations record unusually cold temperatures in January, indicating possible outliers or data errors. These irregularities are less prominent in July, where stations tend to follow similar temperature trends over time.
+
+
+#two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option).
+```{r}
+library(ggplot2)
+library(dplyr)
+library(hexbin)
+library(ggridges)
+library(patchwork)
+
+# (i) Hexbin plot for tmax vs tmin
+tmax_tmin_plot <- ggplot(ny_noaa_clean, aes(x = tmin, y = tmax)) +
+  geom_hex(bins = 50) +
+  scale_fill_viridis_c() +  
+  labs(
+    title = "tmax vs tmin",
+    x = "Minimum Temperature (°C)",
+    y = "Maximum Temperature (°C)",
+    fill = "Density"
+  ) +
+  theme_minimal()
+
+# (ii) Ridge plot for snowfall distribution by year
+snowfall_plot <- ny_noaa_clean %>%
+  filter(snow > 0 & snow < 100) %>%
+  ggplot(aes(x = snow, y = factor(year), fill = year)) +  
+  geom_density_ridges(scale = 1, rel_min_height = 0.01) +  
+  scale_fill_viridis_c() +  
+  labs(
+    title = "Snowfall Distribution by Year",
+    x = "Snowfall (mm)",
+    y = "Year"
+  ) +
+  theme_minimal()
+
+tmax_tmin_plot + snowfall_plot + plot_layout(ncol = 2)
+
+```
+
+
+#Problem 2
+
+
