@@ -42,7 +42,7 @@ ny_noaa_clean %>%
   arrange(desc(count))
 ```
 
-#Answer 
+#comment 
 
 The most frequent snowfall value is 0, with 2,008,508 occurrences. This is because snowfall is seasonal and occurs only during specific periods in colder months.
 
@@ -68,7 +68,7 @@ ny_noaa_clean %>%
   theme(legend.position = "none")
 ```
 
-#Answer 
+#comment 
 The plot shows that January has significantly lower average maximum temperatures compared to July, which is expected due to seasonal differences. While July temperatures exhibit a consistent pattern across stations, January data shows more variability and several unusual spikes and dips. Specifically, between 1980 and 1990, some stations record unusually cold temperatures in January, indicating possible outliers or data errors. These irregularities are less prominent in July, where stations tend to follow similar temperature trends over time.
 
 
@@ -111,5 +111,133 @@ tmax_tmin_plot + snowfall_plot + plot_layout(ncol = 2)
 
 
 #Problem 2
+```{r}
+demographic_data <- read.csv("nhanes_covar.csv", skip = 5, col.names = c("SEQN", "sex", "age", "BMI", "education"))
+accelerometer_data <- read.csv("nhanes_accel.csv")
+```
+
+
+```{r}
+clean_data <- demographic_data %>%
+  filter(age >= 21) %>%  
+  mutate(
+    sex = factor(sex, levels = c("1", "2"), labels = c("Male", "Female")),
+    education = factor(education, levels = c("1", "2", "3"), 
+                       labels = c("Less than HS", "HS Graduate", "College or More"))
+  ) %>%
+  drop_na(sex, age, BMI, education)
+merged_data <- inner_join(clean_data, accelerometer_data, by = "SEQN")
+```
+
+
+#reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education categoryreader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
+
+```{r}
+table_sex_education <- clean_data %>%
+  count(education, sex) %>%
+  arrange(education) %>%
+  select(education, everything()) %>%
+  knitr::kable()
+
+table_sex_education
+```
+
+
+```{r}
+age_distribution_density_plot <- ggplot(clean_data, aes(x = age, fill = sex)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ education) +
+  labs(
+    title = "Age Distribution by Education Level and Gender",
+    x = "Age",
+    y = "Density",
+    fill = "Gender"
+  ) +
+  theme_minimal()
+
+print(age_distribution_density_plot)
+
+```
+
+
+# comment
+- The table shows a relatively balanced distribution of men and women across education levels, with slight variations. In the "Less than HS" group, men (27) and women (28) are almost equal, while more men (34) than women (23) have a high school equivalent education. In the "College or More" category, women slightly outnumber men (59 vs. 56). 
+
+- The age distribution plot shows that in the "Less than HS" and "HS Graduate" groups, women tend to peak around age 60, while men are more evenly spread across ages. In the "College or More" group, women dominate in the older age groups (above 60), suggesting differences in educational attainment across life stages.
+
+
+#Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+
+
+```{r}
+total_activity_data <- merged_data %>%
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "minute",
+    values_to = "MIMS"
+  )%>%
+  group_by(SEQN, age, sex, education) %>%
+  summarize(total_activity = sum(MIMS, na.rm = TRUE)) 
+
+```
+
+
+
+
+```{r}
+activity_plot <- ggplot(total_activity_data, aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  facet_grid(~ education) +
+  labs(
+    title = "Total Activity vs Age by Education and Gender",
+    x = "Age",
+    y = "Total Activity",
+    color = "Gender"
+  ) +
+  theme_minimal()
+
+print(activity_plot)
+```
+
+#Comment
+The plot shows that total activity generally declines with age across all education levels, but the patterns differ by gender and education. In the "Less than HS" group, both men and women show a similar decline in activity as they age, with men having slightly higher activity levels in younger years but converging with women by around age 60. In the "HS Graduate" group, women tend to have higher activity levels than men around ages 40-50, but both genders experience significant drops in activity after age 60. Men show a more consistent decline in activity across ages, while women show more variability. In the "College or More" group, women tend to maintain higher activity levels than men across most ages, with both genders showing a less steep decline in activity compared to those with lower education levels. This suggests that individuals with higher education, particularly women, tend to maintain higher levels of activity as they age.
+
+
+#Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+```{r}
+activity_by_time <- merged_data %>%
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "minute",
+    names_prefix = "min", 
+    values_to = "activity"
+  ) %>%
+  filter(!is.na(as.numeric(minute))) %>%
+  mutate(minute = as.numeric(minute))  
+
+activity_time_plot <- 
+  activity_by_time %>% 
+  ggplot(aes(x = minute, y = activity, color = sex)) +
+  geom_smooth(se = FALSE) +   
+  facet_grid(. ~ education) +    
+  labs(
+    title = "24-hour Activity Time Courses by Education Level and Sex",
+    x = "Minute of the Day",
+    y = "Activity (MIMS)",
+    color = "Sex"
+  ) +
+  theme_minimal()
+
+print(activity_time_plot)
+```
+
+#comment
+The plot shows that, across all education levels, women generally exhibit higher activity levels compared to men, especially during peak times in the morning and afternoon. Despite these differences, the overall pattern of activity remains similar across education groups, with notable peaks and declines occurring at the same points throughout the day. This suggests that while gender might influence activity intensity, education level appears to have less of an impact on the overall structure of daily activity. Both men and women, regardless of education, follow a fairly consistent routine in terms of when their activity levels rise and fall throughout the day.
+
+
+
+
+
 
 
