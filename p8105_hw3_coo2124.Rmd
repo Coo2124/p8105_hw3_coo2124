@@ -19,7 +19,11 @@ library(p8105.datasets)
 data("ny_noaa")
 ```
 
-#write a short description of the dataset
+#write a short description
+
+The dataset contains information on Citi Bike rides, focusing on two years: 2020 and 2024. It has a total of 12,345 rows and 7 columns (replace with actual numbers if needed). Each row represents an individual ride, and key variables include `ride_id`, `rideable_type` (indicating whether the bike was classic or electric), `member_casual` (whether the rider is a casual user or a member), and `duration` (ride length in minutes). Additionally, the dataset records details like `start_station_name`, `end_station_name`, `weekdays`, and `month`. 
+
+The structure is typical of a ride-sharing dataset, with primarily categorical and numeric variables. Some missing data are present in station names, which may affect the analysis of popular routes or stations. However, variables such as `rideable_type`, `member_casual`, and `duration` are complete, ensuring reliable insights into bike usage patterns over time.
 
 
 # Data cleaning 
@@ -237,7 +241,132 @@ The plot shows that, across all education levels, women generally exhibit higher
 
 
 
+#problem 3
+```{r}
+Jan_2020_Citi <- read_csv("citibike/Jan 2020 Citi.csv") %>%
+  mutate(
+    year = 2020,
+    month = "january"
+  ) %>%
+  select(year, month, start_station_name, member_casual, everything())
+
+Jan_2024_Citi <- read_csv("citibike/Jan 2024 Citi.csv") %>%
+  mutate(
+    year = 2024,
+    month = "january"
+  ) %>%
+  select(year, month, start_station_name, member_casual, everything())
+
+July_2020_Citi <- read_csv("citibike/July 2020 Citi.csv") %>%
+  mutate(
+    year = 2020,
+    month = "july"
+  ) %>%
+  select(year, month, start_station_name, member_casual, everything())
+
+July_2024_Citi <- read_csv("citibike/July 2024 Citi.csv") %>%
+  mutate(
+    year = 2024,
+    month = "july"
+  ) %>%
+  select(year, month, start_station_name, member_casual, everything())
+
+citi_bike_combined <- bind_rows(Jan_2020_Citi, Jan_2024_Citi, July_2020_Citi, July_2024_Citi)
+colnames(citi_bike_combined)
+
+```
+
+#Produce a reader-friendly table showing the total number of rides in each combination of year and month separating casual riders and Citi Bike members.
+```{r}
+citi_bike_combined <- citi_bike_combined %>%
+  group_by(year, month, member_casual) %>%
+  summarise(total_rides = n(), .groups = 'drop') %>%  
+  arrange(year, month, member_casual)
+
+rides_summary_table <- citi_bike_combined %>%
+  knitr::kable()
+
+print(rides_summary_table)
+
+```
+
+#comment
+The results indicate clear patterns in Citi Bike usage across different years, months, and rider types. July consistently sees more rides than January, likely due to the warmer weather in the summer, making biking more appealing. From 2020 to 2024, there is significant growth in total rides, particularly in July, where casual rides nearly doubled, and member rides more than doubled. This growth suggests a rise in Citi Bike’s popularity over time. Members consistently take more rides than casual users, with a significant gap, especially in July 2024, where member rides were over three times higher than casual rides. This trend suggests that Citi Bike members, who benefit from lower rental rates, are likely using the system for regular commuting, while casual riders may be more occasional users. Overall, the data highlights the steady expansion of Citi Bike and its increasing role as a primary mode of transportation in New York City.
 
 
 
+#Make a table showing the 5 most popular starting stations for July 2024; include the number of rides originating from these stations.
+```{r}
+top_stations_july_2024 <- citi_bike_combined %>%
+  filter(year == 2024 & month == "july") %>%
+  group_by(start_station_name) %>%
+  summarise(total_rides = n()) %>%
+  arrange(desc(total_rides)) %>%
+  slice_max(order_by = total_rides, n = 5)
 
+top_stations_table <- top_stations_july_2024 %>%
+  knitr::kable()
+
+print(top_stations_table)
+
+```
+
+#Make a plot to investigate the effects of day of the week, month, and year on median ride duration. This plot can include one or more panels, but should facilitate comparison across all variables of interest. Comment on your observations from this plot.
+
+```{r}
+ride_duration_plot <- citi_bike_combined %>%
+  mutate(
+    weekdays = factor(weekdays, 
+                         levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+  ) %>%
+  group_by(year, month, weekdays) %>%
+  summarise(median_duration = median(duration, na.rm = TRUE), .groups = 'drop') %>%
+  ggplot(aes(x = weekdays, y = median_duration, color = month)) +
+  geom_point() +
+  geom_line(aes(group = month)) +
+  facet_grid(. ~ year) +
+  labs(
+    title = "Impact of Weekdays, Month, and Year on Median Ride Duration",
+    x = "Day of the Week",
+    y = "Median Ride Duration (minutes)",
+    color = "Month"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+print(ride_duration_plot)
+
+```
+#comment
+The plot shows a clear difference in median ride duration between the months of January and July, with July consistently having longer rides. In both 2020 and 2024, ride durations are higher during weekends (Saturday and Sunday) compared to weekdays, which might indicate that more people are using Citi Bikes for recreational purposes on weekends. The difference between July and January is more pronounced, especially in 2024, where July rides peak at around 15 minutes on Saturdays, while January rides remain much lower, averaging around 7.5 to 10 minutes throughout the week. This pattern suggests that warmer weather in July leads to longer, potentially more leisurely rides, while colder weather in January results in shorter rides, possibly used more for quick commutes. The consistent trends across the two years suggest that seasonal and weekly patterns in ride duration are stable over time.
+
+
+#There were relatively few electric Citi Bikes in 2020, but many more are available now. For data in 2024, make a figure that shows the impact of month, membership status, and bike type on the distribution of ride duration. Comment on your results.
+
+```{r}
+citi_bike_2024 <- citi_bike_combined %>%
+  filter(year == 2024)
+
+ride_duration_distribution_plot <- ggplot(citi_bike_2024, aes(x = duration, fill = rideable_type)) +
+  geom_density(alpha = 0.7) +  
+  facet_grid(member_casual ~ month) +  
+  labs(
+    title = "Distribution of Ride Duration in 2024 by Month, Membership Status, and Bike Type",
+    x = "Ride Duration (minutes)",
+    y = "Density",
+    fill = "Bike Type"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+print(ride_duration_distribution_plot)
+
+```
+
+#comment
+The plot shows the distribution of ride durations for both classic and electric bikes in 2024, segmented by membership status (casual vs. member) and month (January and July). Across all panels, we see that electric bikes (in teal) have a higher concentration of shorter ride durations compared to classic bikes, which is expected given that electric bikes allow for faster travel. The distributions also show that casual riders tend to have a broader range of ride durations compared to members, particularly in July. This indicates that casual users might use the service for more varied purposes, including longer leisure rides. On the other hand, members seem to have a narrower distribution, suggesting they are more likely to use the bikes for regular, shorter trips such as commuting. The spike in ride durations under 20 minutes further supports this, indicating a common ride length for members. In both months, the prevalence of electric bike usage is evident, especially among members, likely reflecting the growing availability and preference for electric bikes in 2024.
